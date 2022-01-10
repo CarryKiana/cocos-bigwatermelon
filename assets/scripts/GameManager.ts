@@ -1,5 +1,5 @@
 
-import { _decorator, Component, Node, Label, SystemEvent, systemEvent, Prefab, instantiate, RigidBody2D, Vec2, CircleCollider2D, Contact2DType, Collider2D, IPhysics2DContact, BoxCollider2D, CCInteger, SpriteFrame, Sprite, UITransform, tween, Vec3  } from 'cc';
+import { _decorator, Component, Node, Label, SystemEvent, systemEvent, Prefab, instantiate, RigidBody2D, Vec2, CircleCollider2D, Contact2DType, Collider2D, IPhysics2DContact, BoxCollider2D, CCInteger, SpriteFrame, Sprite, UITransform, tween, Vec3, AudioClip, AudioSource  } from 'cc';
 
 import { GameState, FruitStatus } from './GameDefine'
 const { ccclass, property } = _decorator;
@@ -10,6 +10,17 @@ class FruitItem {
     public id = 0
     @property({ type: SpriteFrame })
     public iconSF = null
+}
+@ccclass('JuiceItem')
+class JuiceItem {
+    @property({ type: CCInteger })
+    public id = 0
+    @property({ type: SpriteFrame })
+    public iconSF_l = null
+    @property({ type: SpriteFrame })
+    public iconSF_o = null
+    @property({ type: SpriteFrame })
+    public iconSF_q = null
 }
 
 /**
@@ -56,7 +67,17 @@ export class GameManager extends Component {
     public fruitPrefab = null
 
     @property({ type: FruitItem })
-    public fruits: FruitItem[] = [];
+    public fruits: FruitItem[] = []
+
+    @property({ type: JuiceItem })
+    public juices: JuiceItem[] = []
+
+    @property({ type: AudioClip })
+    public AudioBoom = null
+    @property({ type: AudioClip })
+    public AudioWater = null
+    @property({ type: AudioClip })
+    public AudioKnock = null
     // [2]
     // @property
     // serializableDummy = 0;
@@ -100,15 +121,32 @@ export class GameManager extends Component {
         const worldManifold =  contact.getWorldManifold()
         const points = worldManifold.points
         const normal = worldManifold.normal
-        const next = selfCollider.node.parent.getComponent('Fruit')['index'] + 1
+        const next = selfCollider.node.parent.getComponent('Fruit')['index']
+        if (next === 12) {
+            // 超出最大水果，游戏结束todo
+            return
+        }
         setTimeout(_ => {
-            selfCollider.node.parent.removeFromParent()
-            otherCollider.node.parent.removeFromParent()
+            selfCollider.node.parent.destroy()
+            otherCollider.node.parent.destroy()
             const newFruit = this.geneFruit(false, points[0], next)
             const rigidBody2D = newFruit.getChildByName('img').getComponent(RigidBody2D)
             rigidBody2D.gravityScale = 3
             rigidBody2D.linearVelocity = normal.clone() // new Vec2( Math.random() + -0.5 , 1)
+            this.playAudio()
         })
+        // 计算分数 todo
+        // 播放特效 todo
+    }
+    // 播放合成音效
+    playAudio() {
+        const audioSource = this.node.getComponent(AudioSource)
+        audioSource.playOneShot(this.AudioBoom)
+        audioSource.playOneShot(this.AudioWater)
+    }
+    // 播放合成动画
+    playAnimation() {
+
     }
     // 鼠标按下--移动水果事件处理
     startMoveFruit (e) {
@@ -137,6 +175,8 @@ export class GameManager extends Component {
     // 鼠标放开--开始自由落体
     drop () {
         if (this._currentFruit && this._FruitStatus === FruitStatus.INIT ) {
+            const audioSource = this.node.getComponent(AudioSource)
+            audioSource.playOneShot(this.AudioKnock)
             this._FruitStatus = FruitStatus.DROPPING
             const rigidBody2D = this._currentFruit.getChildByName('img').getComponent(RigidBody2D)
             rigidBody2D.gravityScale = 3

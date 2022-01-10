@@ -53,7 +53,7 @@ export class Fruit extends Component {
     //     // [4]
     // }
     onDestroy () {
-        // this.node.removeFromParent()
+        this.node.removeFromParent()
     }
 }
 
