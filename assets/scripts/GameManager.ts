@@ -1,5 +1,5 @@
 
-import { _decorator, Component, Node, Label, SystemEvent, systemEvent, Prefab, instantiate, RigidBody2D, Vec2, CircleCollider2D, Contact2DType, Collider2D, IPhysics2DContact, BoxCollider2D, CCInteger, SpriteFrame, Sprite, UITransform, tween, Vec3, AudioClip, AudioSource  } from 'cc';
+import { _decorator, Component, Node, Label, SystemEvent, systemEvent, Prefab, instantiate, RigidBody2D, Vec2, CircleCollider2D, Contact2DType, Collider2D, IPhysics2DContact, BoxCollider2D, CCInteger, SpriteFrame, Sprite, UITransform, tween, Vec3, AudioClip, AudioSource, director  } from 'cc';
 
 import { GameState, FruitStatus } from './GameDefine'
 const { ccclass, property } = _decorator;
@@ -69,8 +69,14 @@ export class GameManager extends Component {
     @property({ type: FruitItem })
     public fruits: FruitItem[] = []
 
+    @property({ type: Prefab })
+    public juicePrefab = null
+
     @property({ type: JuiceItem })
     public juices: JuiceItem[] = []
+
+    // @property({ type: Prefab })
+    // public spriteTemp = null
 
     @property({ type: AudioClip })
     public AudioBoom = null
@@ -98,6 +104,12 @@ export class GameManager extends Component {
         systemEvent.on(SystemEvent.EventType.TOUCH_START, this.startMoveFruit, this)
         systemEvent.on(SystemEvent.EventType.TOUCH_MOVE, this.keepMoveFruit, this)
         systemEvent.on(SystemEvent.EventType.TOUCH_END, this.drop, this)
+        
+        // const child = instantiate(this.spriteTemp)
+        // const spr = child.getComponent(Sprite)
+        // spr.spriteFrame = this.fruits[0].iconSF
+        // this.playPanel.addChild(child)
+        // console.log(this.playPanel)
     }
     // 生成水果
     geneFruit (first: boolean, location: Vec2 | null, target: number | null) {
@@ -129,11 +141,12 @@ export class GameManager extends Component {
         setTimeout(_ => {
             selfCollider.node.parent.destroy()
             otherCollider.node.parent.destroy()
-            const newFruit = this.geneFruit(false, points[0], next)
+            const newFruit = this.geneFruit(false, points[0].clone(), next)
             const rigidBody2D = newFruit.getChildByName('img').getComponent(RigidBody2D)
             rigidBody2D.gravityScale = 3
             rigidBody2D.linearVelocity = normal.clone() // new Vec2( Math.random() + -0.5 , 1)
             this.playAudio()
+            this.playAnimation(points[0].clone(), next - 1, this._size)
         })
         // 计算分数 todo
         // 播放特效 todo
@@ -145,8 +158,13 @@ export class GameManager extends Component {
         audioSource.playOneShot(this.AudioWater)
     }
     // 播放合成动画
-    playAnimation() {
-
+    playAnimation(pos: Vec2, index, size) {
+        const juice = instantiate(this.juicePrefab)
+        juice.getComponent('Juice').setConfig(this.juices[index])
+        juice.parent = this.playPanel
+        juice.getComponent('Juice').showJuice(pos, size * (1 + index / 5))
+        console.log(juice)
+        console.log(index)
     }
     // 鼠标按下--移动水果事件处理
     startMoveFruit (e) {
